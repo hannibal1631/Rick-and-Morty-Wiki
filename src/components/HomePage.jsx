@@ -21,7 +21,7 @@
 // export default CharCard;
 
 import { useEffect, useState } from 'react';
-import { fetchAllCharacters } from '../services/fetchChar'; // Adjust path as needed
+import { fetchAllCharactersAllPages } from '../services/fetchChar'; // Adjust path as needed
 
 function HomePage() {
   const [characters, setCharacters] = useState([]);
@@ -32,9 +32,9 @@ function HomePage() {
     const getAllCharacters = async () => {
       try {
         setLoading(true);
-        // Fetch first page of characters (20 characters)
-        const data = await fetchAllCharacters(1);
-        setCharacters(data.results);
+        // Fetch ALL characters from all pages (800+ characters)
+        const allCharacters = await fetchAllCharactersAllPages();
+        setCharacters(allCharacters);
         setError(null);
       } catch (err) {
         console.error('Error fetching characters:', err);
@@ -66,7 +66,7 @@ function HomePage() {
   return (
     <div className='p-6 bg-gradient-to-br from-green-900 via-green-800 to-emerald-900 min-h-screen'>
       <h1 className='text-4xl font-bold text-center mb-8 text-white drop-shadow-lg'>
-        Rick & Morty Characters
+        All Rick & Morty Characters ({characters.length})
       </h1>
 
       <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 max-w-7xl mx-auto'>
