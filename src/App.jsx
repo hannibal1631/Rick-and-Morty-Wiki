@@ -1,13 +1,12 @@
-import CharCard from './components/CharCard'
-import './index.css'
+import HomePage from './components/HomePage';
+import './index.css';
 
 function App() {
-
   return (
     <>
-      <CharCard charId={2} />
+      <HomePage />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
