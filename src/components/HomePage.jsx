@@ -20,21 +20,26 @@
 
 // export default CharCard;
 
-import { useEffect, useState } from 'react';
-import { fetchAllCharactersAllPages } from '../services/fetchChar'; // Adjust path as needed
+import { useEffect, useState, useCallback } from 'react';
+import { fetchAllCharacters } from '../services/fetchChar'; // Adjust path as needed
 
 function HomePage() {
   const [characters, setCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(true);
 
+  // Load initial characters
   useEffect(() => {
-    const getAllCharacters = async () => {
+    const getInitialCharacters = async () => {
       try {
         setLoading(true);
-        // Fetch ALL characters from all pages (800+ characters)
-        const allCharacters = await fetchAllCharactersAllPages();
-        setCharacters(allCharacters);
+        const data = await fetchAllCharacters(1);
+        setCharacters(data.results);
+        setHasNextPage(data.info.next !== null);
+        setCurrentPage(1);
         setError(null);
       } catch (err) {
         console.error('Error fetching characters:', err);
@@ -44,13 +49,50 @@ function HomePage() {
       }
     };
 
-    getAllCharacters();
+    getInitialCharacters();
   }, []);
+
+  // Load more characters
+  const loadMoreCharacters = useCallback(async () => {
+    if (loadingMore || !hasNextPage) return;
+
+    try {
+      setLoadingMore(true);
+      const nextPage = currentPage + 1;
+      const data = await fetchAllCharacters(nextPage);
+
+      setCharacters((prev) => [...prev, ...data.results]);
+      setCurrentPage(nextPage);
+      setHasNextPage(data.info.next !== null);
+    } catch (err) {
+      console.error('Error loading more characters:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [currentPage, loadingMore, hasNextPage]);
+
+  // Infinite scroll handler
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+        document.documentElement.offsetHeight - 1000
+      ) {
+        loadMoreCharacters();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadMoreCharacters]);
 
   if (loading) {
     return (
       <div className='flex justify-center items-center min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-emerald-900'>
-        <div className='text-2xl text-white'>Loading Characters...</div>
+        <div className='text-center'>
+          <div className='text-2xl text-white mb-4'>Loading Characters...</div>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto'></div>
+        </div>
       </div>
     );
   }
@@ -66,7 +108,7 @@ function HomePage() {
   return (
     <div className='p-6 bg-gradient-to-br from-green-900 via-green-800 to-emerald-900 min-h-screen'>
       <h1 className='text-4xl font-bold text-center mb-8 text-white drop-shadow-lg'>
-        All Rick & Morty Characters ({characters.length})
+        Rick & Morty Characters ({characters.length})
       </h1>
 
       <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 max-w-7xl mx-auto'>
@@ -74,6 +116,37 @@ function HomePage() {
           <CharacterCard key={character.id} character={character} />
         ))}
       </div>
+
+      {/* Loading more indicator */}
+      {loadingMore && (
+        <div className='flex justify-center items-center mt-8 mb-4'>
+          <div className='text-center'>
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2'></div>
+            <div className='text-white text-sm'>Loading more characters...</div>
+          </div>
+        </div>
+      )}
+
+      {/* End of results indicator */}
+      {!hasNextPage && characters.length > 0 && (
+        <div className='text-center mt-8 mb-4'>
+          <div className='text-white text-lg'>
+            🎉 You've seen all {characters.length} characters! 🎉
+          </div>
+        </div>
+      )}
+
+      {/* Load more button (fallback for users who prefer clicking) */}
+      {hasNextPage && !loadingMore && (
+        <div className='flex justify-center mt-8'>
+          <button
+            onClick={loadMoreCharacters}
+            className='bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200'
+          >
+            Load More Characters
+          </button>
+        </div>
+      )}
     </div>
   );
 }
